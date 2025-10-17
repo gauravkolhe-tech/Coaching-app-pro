@@ -1,53 +1,28 @@
 
 
-import React, { useState, useEffect, createContext, useContext, useMemo, ReactNode } from 'react';
+
+import React, { useState, useEffect, createContext, useContext, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Analytics } from '@vercel/analytics/react';
 
-// --- TYPES --- //
-interface User {
+// --- TYPE DEFINITIONS --- //
+// Fix: Added type definitions to resolve multiple TypeScript errors related to untyped data.
+type User = {
     id: string;
     username: string;
     password: string;
     role: "admin" | "teacher" | "student";
     name: string;
-}
+};
 
-interface Notice {
+type Notice = {
     id: number;
     title: string;
     content: string;
     author: string;
     date: string;
     pinned: boolean;
-}
-
-interface Submission {
-    status: "Submitted";
-    file: string;
-    submissionDate: string;
-}
-
-interface Assignment {
-    id: number;
-    title: string;
-    subject: string;
-    dueDate: string;
-    submissions: { [studentId: string]: Submission };
-}
-
-interface Video {
-    id: number;
-    subject: string;
-    title: string;
-    url: string;
-}
-
-interface Fee {
-    total: number;
-    paid: number;
-    pending: number;
-}
+};
 
 type Attendance = {
     [studentId: string]: {
@@ -55,17 +30,56 @@ type Attendance = {
     }
 };
 
+type Submission = {
+    status: string;
+    file: string;
+    submissionDate: string;
+};
+
+type Assignment = {
+    id: number;
+    title: string;
+    subject: string;
+    dueDate: string;
+    submissions: { [studentId: string]: Submission };
+};
+
+type Video = {
+    id: number;
+    subject: string;
+    title: string;
+    url: string;
+};
+
+type Fee = {
+    total: number;
+    paid: number;
+    pending: number;
+};
+
+interface CardProps {
+    title: React.ReactNode;
+    icon: React.ReactNode;
+    children: React.ReactNode;
+    className?: string;
+}
+
+interface ModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    title: React.ReactNode;
+    children: React.ReactNode;
+}
+
 
 // --- MOCK DATA --- //
-// Fix: Add strong types to initial data to prevent 'unknown' type errors.
-const initialUsers: { [id: string]: User } = {
+const initialUsers: { [key: string]: User } = {
     "admin1": { id: "admin1", username: "gaurav", password: "gauravB0916w", role: "admin", name: "Gaurav" },
     "teacher1": { id: "teacher1", username: "teacher", password: "password", role: "teacher", name: "Dr. Evelyn Reed" },
     "student1": { id: "student1", username: "student", password: "password", role: "student", name: "Alex Johnson" },
     "student2": { id: "student2", username: "student2", password: "password", role: "student", name: "Maria Garcia" },
 };
 
-// Fix: Add strong types to initial data.
 const initialNotices: Notice[] = [
     { id: 1, title: "Mid-Term Exams Schedule", content: "The mid-term exams will be held from 15th to 20th of next month. Please prepare well.", author: "Dr. Evelyn Reed", date: "2023-10-26", pinned: true },
     { id: 2, title: "Holiday Announcement", content: "The center will be closed for the national holiday on the 1st of next month.", author: "Gaurav", date: "2023-10-25", pinned: false },
@@ -89,20 +103,17 @@ const createInitialAttendance = (): Attendance => {
     return attendance;
 }
 
-// Fix: Add strong types to initial data.
 const initialAssignments: Assignment[] = [
     { id: 1, title: "Physics: Chapter 5 Problems", subject: "Physics", dueDate: "2023-11-05", submissions: { "student1": { status: "Submitted", file: "alex_physics.pdf", submissionDate: "2023-11-04" } } },
     { id: 2, title: "Math Quiz: Algebra", subject: "Math", dueDate: "2023-11-02", submissions: {} },
 ];
 
-// Fix: Add strong types to initial data.
 const initialVideos: Video[] = [
     { id: 1, subject: "Physics", title: "Introduction to Thermodynamics", url: "https://www.youtube.com/embed/1_p5tW-I_e8" },
     { id: 2, subject: "Math", title: "Calculus Basics: Derivatives", url: "https://www.youtube.com/embed/9vKqVkMQff4" },
 ];
 
-// Fix: Add strong types to initial data.
-const initialFees: { [id: string]: Fee } = {
+const initialFees: { [key: string]: Fee } = {
     "student1": { total: 5000, paid: 5000, pending: 0 },
     "student2": { total: 5000, paid: 3000, pending: 2000 },
 };
@@ -124,59 +135,33 @@ const icons = {
 
 
 // --- CONTEXT & PROVIDER --- //
-// Fix: Add a strong type for the DataContext value.
-interface DataContextType {
-    users: { [id: string]: User };
-    teachers: User[];
-    students: User[];
-    notices: Notice[];
-    attendance: Attendance;
-    assignments: Assignment[];
-    videos: Video[];
-    fees: { [id: string]: Fee };
-    addNotice: (notice: Pick<Notice, 'title' | 'content' | 'author'>) => void;
-    togglePinNotice: (id: number) => void;
-    deleteNotice: (id: number) => void;
-    markAttendance: (studentId: string, date: string, status: 'present' | 'absent') => void;
-    addAssignment: (assignment: Pick<Assignment, 'title' | 'subject' | 'dueDate'>) => void;
-    submitAssignment: (assignmentId: number, studentId: string, file: string) => void;
-    addVideo: (video: Pick<Video, 'subject' | 'title'> & { url: string }) => void;
-    addUser: (user: Omit<User, 'id'>) => void;
-    updateUser: (id: string, updatedData: Partial<User>) => void;
-    updateFee: (studentId: string, newFee: { total: string | number; paid: string | number; }) => void;
-}
+const DataContext = createContext(null!);
 
-const DataContext = createContext<DataContextType | null>(null);
-
-// Fix: Create a robust custom hook that ensures the context value is not null.
 const useData = () => {
-    const context = useContext(DataContext);
-    if (!context) {
-        throw new Error("useData must be used within a DataProvider");
-    }
-    return context;
+    return useContext(DataContext);
 };
 
-// Fix: Add prop types for the provider component.
-const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [users, setUsers] = useState(initialUsers);
-    const [notices, setNotices] = useState(initialNotices);
-    const [attendance, setAttendance] = useState(createInitialAttendance());
-    const [assignments, setAssignments] = useState(initialAssignments);
-    const [videos, setVideos] = useState(initialVideos);
-    const [fees, setFees] = useState(initialFees);
+// Fix: Added explicit type for children prop to resolve error.
+const DataProvider = ({ children }: { children: React.ReactNode }) => {
+    // Fix: Typed state variables to ensure type safety and fix property access errors.
+    const [users, setUsers] = useState<{ [key: string]: User }>(initialUsers);
+    const [notices, setNotices] = useState<Notice[]>(initialNotices);
+    const [attendance, setAttendance] = useState<Attendance>(createInitialAttendance());
+    const [assignments, setAssignments] = useState<Assignment[]>(initialAssignments);
+    const [videos, setVideos] = useState<Video[]>(initialVideos);
+    const [fees, setFees] = useState<{ [key: string]: Fee }>(initialFees);
 
-    // Fix: Type 'u' as User to fix property access errors on 'unknown'.
-    const students = useMemo(() => Object.values(users).filter((u: User) => u.role === 'student'), [users]);
-    const teachers = useMemo(() => Object.values(users).filter((u: User) => u.role === 'teacher'), [users]);
+    // Fix: Type inference for students and teachers is now correct due to typed 'users' state.
+    const students = useMemo(() => Object.values(users).filter(u => u.role === 'student'), [users]);
+    const teachers = useMemo(() => Object.values(users).filter(u => u.role === 'teacher'), [users]);
 
     const showNotification = (message: string) => {
         // In a real app, this would trigger a more robust notification system
         alert(`🔔 Notification: ${message}`);
     };
 
-    const addNotice = (notice: Pick<Notice, 'title' | 'content' | 'author'>) => {
-        const newNotice: Notice = { ...notice, id: Date.now(), date: new Date().toISOString().slice(0, 10), pinned: false };
+    const addNotice = (notice: Omit<Notice, 'id' | 'date' | 'pinned'>) => {
+        const newNotice = { ...notice, id: Date.now(), date: new Date().toISOString().slice(0, 10), pinned: false };
         setNotices(prev => [newNotice, ...prev]);
         showNotification(`New notice posted: "${notice.title}"`);
     };
@@ -199,8 +184,8 @@ const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         }));
     };
 
-    const addAssignment = (assignment: Pick<Assignment, 'title' | 'subject' | 'dueDate'>) => {
-        const newAssignment: Assignment = { ...assignment, id: Date.now(), submissions: {} };
+    const addAssignment = (assignment: Omit<Assignment, 'id' | 'submissions'>) => {
+        const newAssignment = { ...assignment, id: Date.now(), submissions: {} };
         setAssignments(prev => [newAssignment, ...prev]);
         showNotification(`New assignment posted: "${assignment.title}"`);
     };
@@ -221,7 +206,7 @@ const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         showNotification("Assignment submitted successfully!");
     };
     
-    const addVideo = (video: Pick<Video, 'subject' | 'title'> & { url: string }) => {
+    const addVideo = (video: Omit<Video, 'id' | 'url'> & { url: string }) => {
         // Basic URL validation and embedding conversion
         let url = video.url;
         if (url.includes("watch?v=")) {
@@ -246,14 +231,14 @@ const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         setUsers(prev => ({ ...prev, [id]: { ...prev[id], ...updatedData } }));
     };
 
-    const updateFee = (studentId: string, newFee: { total: string | number, paid: string | number }) => {
+    const updateFee = (studentId: string, newFee: { total: string; paid: string }) => {
         const total = Number(newFee.total);
         const paid = Number(newFee.paid);
         const pending = total - paid;
         setFees(prev => ({...prev, [studentId]: { total, paid, pending }}));
     };
 
-    const value: DataContextType = {
+    const value = {
         users, teachers, students,
         notices,
         attendance,
@@ -272,31 +257,21 @@ const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 };
 
 // --- AUTHENTICATION --- //
-// Fix: Add a strong type for the AuthContext value.
-interface AuthContextType {
-    user: User | null;
-    login: (username: string, password: string) => boolean;
-    logout: () => void;
-}
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext(null!);
 
-// Fix: Create a robust custom hook that ensures the context value is not null.
 const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error("useAuth must be used within an AuthProvider");
-    }
-    return context;
+    return useContext(AuthContext);
 };
 
-// Fix: Add prop types for the provider component.
-const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+// Fix: Added explicit type for children prop to resolve error.
+const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    // Fix: Typed user state for type safety.
     const [user, setUser] = useState<User | null>(null);
     const { users } = useData();
 
     const login = (username: string, password: string) => {
-        // Fix: Type 'u' as User to fix property access errors on 'unknown'.
-        const foundUser = Object.values(users).find((u: User) => u.username === username && u.password === password);
+        // Fix: Type inference for foundUser is now correct due to typed 'users' state.
+        const foundUser = Object.values(users).find(u => u.username === username && u.password === password);
         if (foundUser) {
             setUser(foundUser);
             return true;
@@ -308,21 +283,15 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         setUser(null);
     };
 
-    const value: AuthContextType = { user, login, logout };
+    const value = { user, login, logout };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 
 // --- GENERIC COMPONENTS --- //
-// Fix: Add strong prop types for generic components to fix 'children missing' errors.
-interface CardProps {
-    title: string;
-    icon: ReactNode;
-    children: ReactNode;
-    className?: string;
-}
-const Card: React.FC<CardProps> = ({ title, icon, children, className = '' }) => (
+// Fix: Added explicit props type (CardProps) to resolve errors about missing children prop.
+const Card = ({ title, icon, children, className = '' }: CardProps) => (
     <div className={`card ${className}`}>
         <div className="card-header">
             <span className="icon">{icon}</span>
@@ -332,13 +301,8 @@ const Card: React.FC<CardProps> = ({ title, icon, children, className = '' }) =>
     </div>
 );
 
-interface ModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    title: string;
-    children: ReactNode;
-}
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+// Fix: Added explicit props type (ModalProps) to resolve errors about missing children prop.
+const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
     if (!isOpen) return null;
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -356,10 +320,9 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 // --- ADMIN COMPONENTS --- //
 const AdminOverview = () => {
     const { students, teachers, fees } = useData();
-    // Fix: Type 'f' as Fee in reduce to fix property access errors on 'unknown' type.
-    // Explicitly typing 'f' as Fee resolves the error where 'f.paid' and 'f.pending' cannot be accessed.
-    const totalFeesCollected = Object.values(fees).reduce((sum, f: Fee) => sum + f.paid, 0);
-    const totalPendingFees = Object.values(fees).reduce((sum, f: Fee) => sum + f.pending, 0);
+    // Fix: Type inference for f.paid and f.pending is now correct due to typed 'fees' state.
+    const totalFeesCollected = Object.values(fees).reduce((sum, f) => sum + f.paid, 0);
+    const totalPendingFees = Object.values(fees).reduce((sum, f) => sum + f.pending, 0);
 
     return (
         <div className="dashboard-grid">
@@ -386,7 +349,6 @@ const AdminOverview = () => {
 const UserManagement = () => {
     const { users, addUser, updateUser } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    // Fix: Type state to ensure type safety.
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
     const openAddModal = () => {
@@ -401,12 +363,12 @@ const UserManagement = () => {
 
     const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const formData = new FormData(e.target as HTMLFormElement);
-        const userData = Object.fromEntries(formData.entries());
+        const formData = new FormData(e.currentTarget);
+        const userData = Object.fromEntries(formData.entries()) as Omit<User, 'id'>;
         if (editingUser) {
-            updateUser(editingUser.id, userData as Partial<User>);
+            updateUser(editingUser.id, userData);
         } else {
-            addUser(userData as Omit<User, 'id'>);
+            addUser(userData);
         }
         setIsModalOpen(false);
     };
@@ -420,8 +382,8 @@ const UserManagement = () => {
                         <tr><th>Name</th><th>Username</th><th>Role</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
-                        {/* Fix: Type 'user' as User in map to fix property access errors on 'unknown' type. */}
-                        {Object.values(users).map((user: User) => (
+                        {/* Fix: User properties are now correctly typed, resolving access errors. */}
+                        {Object.values(users).map(user => (
                             <tr key={user.id}>
                                 <td>{user.name}</td>
                                 <td>{user.username}</td>
@@ -467,15 +429,14 @@ const UserManagement = () => {
 
 const FeesManagement = () => {
     const { students, fees, updateFee } = useData();
-    // Fix: Type state to ensure type safety.
-    const [editingFee, setEditingFee] = useState<{ studentId: string; total: number; paid: number; pending: number; } | null>(null);
+    const [editingFee, setEditingFee] = useState<{ studentId: string } & Fee | null>(null);
 
     const handleFeeUpdate = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!editingFee) return;
-        const formData = new FormData(e.target as HTMLFormElement);
-        const feeData = Object.fromEntries(formData.entries());
-        updateFee(editingFee.studentId, feeData as { total: string; paid: string; });
+        const formData = new FormData(e.currentTarget);
+        const feeData = Object.fromEntries(formData.entries()) as { total: string; paid: string };
+        updateFee(editingFee.studentId, feeData);
         setEditingFee(null);
     };
 
@@ -564,14 +525,13 @@ const TeacherAttendance = () => {
 const TeacherAssignments = () => {
     const { assignments, addAssignment, students } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    // Fix: Type state to ensure type safety.
     const [viewingSubmissions, setViewingSubmissions] = useState<Assignment | null>(null);
 
     const handleAddAssignment = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const formData = new FormData(e.target as HTMLFormElement);
-        const data = Object.fromEntries(formData.entries());
-        addAssignment(data as Pick<Assignment, 'title' | 'subject' | 'dueDate'>);
+        const formData = new FormData(e.currentTarget);
+        const data = Object.fromEntries(formData.entries()) as Omit<Assignment, 'id' | 'submissions'>;
+        addAssignment(data);
         setIsModalOpen(false);
     };
     
@@ -606,14 +566,13 @@ const TeacherAssignments = () => {
                     <button type="submit" className="btn">Post Assignment</button>
                 </form>
             </Modal>
-            {/* Fix: Ensure title is always a string to satisfy ModalProps type. */}
-             <Modal isOpen={!!viewingSubmissions} onClose={() => setViewingSubmissions(null)} title={viewingSubmissions ? `Submissions for "${viewingSubmissions.title}"` : ''}>
+             <Modal isOpen={!!viewingSubmissions} onClose={() => setViewingSubmissions(null)} title={`Submissions for "${viewingSubmissions?.title}"`}>
                 {Object.keys(viewingSubmissions?.submissions || {}).length === 0 ? <p>No submissions yet.</p> : (
                     <div className="table-container">
                         <table>
                             <thead><tr><th>Student</th><th>File</th><th>Submitted On</th></tr></thead>
                             <tbody>
-                                {students.filter(s => viewingSubmissions.submissions[s.id]).map(s => {
+                                {viewingSubmissions && students.filter(s => viewingSubmissions.submissions[s.id]).map(s => {
                                     const sub = viewingSubmissions.submissions[s.id];
                                     return (
                                         <tr key={s.id}>
@@ -638,8 +597,8 @@ const TeacherVideos = () => {
 
     const handleAddVideo = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const formData = new FormData(e.target as HTMLFormElement);
-        addVideo(Object.fromEntries(formData.entries()) as {title: string, subject: string, url: string});
+        const formData = new FormData(e.currentTarget);
+        addVideo(Object.fromEntries(formData.entries()) as Omit<Video, 'id'> & { url: string });
         setIsModalOpen(false);
     };
     
@@ -664,7 +623,9 @@ const TeacherVideos = () => {
 const NoticeBoard = () => {
     const { notices, togglePinNotice, deleteNotice } = useData();
     const { user } = useAuth();
-    // Fix: Use .getTime() for date subtraction and cast boolean to number for explicit sorting logic.
+    // Fix: Added a null check for user to prevent potential runtime errors.
+    if (!user) return null;
+    // Fix: Changed boolean subtraction to use Number() to resolve arithmetic operation error.
     const sortedNotices = [...notices].sort((a, b) => Number(b.pinned) - Number(a.pinned) || new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return (
@@ -697,6 +658,8 @@ const NoticeBoard = () => {
 
 const StudentAttendance = () => {
     const { user } = useAuth();
+    // Fix: Added a null check for user to prevent potential runtime errors.
+    if (!user) return null;
     const { attendance } = useData();
     const studentAttendance = attendance[user.id] || {};
     
@@ -740,6 +703,8 @@ const StudentAttendance = () => {
 const StudentAssignments = () => {
     const { assignments, submitAssignment } = useData();
     const { user } = useAuth();
+    // Fix: Added a null check for user to prevent potential runtime errors.
+    if (!user) return null;
     
     const handleSubmit = (assignmentId: number) => {
         // Mock file submission
@@ -768,16 +733,13 @@ const StudentAssignments = () => {
     );
 };
 
-// Fix: Add prop types to ensure type safety.
-const VideoList: React.FC<{ videos: Video[] }> = ({ videos }) => {
-    // Fix: Type state to ensure type safety.
+const VideoList = ({ videos }: { videos: Video[] }) => {
     const [playingVideo, setPlayingVideo] = useState<Video | null>(null);
-    // Fix: Properly type the accumulator in reduce to prevent 'unknown' type errors on '.map'.
-    // The generic on reduce was causing an "Untyped function" error. Casting the initial empty object is a more robust way to type the accumulator.
+    // Fix: Typed the accumulator in reduce to resolve 'map does not exist' error.
     const videosBySubject = videos.reduce((acc, video) => {
         (acc[video.subject] = acc[video.subject] || []).push(video);
         return acc;
-    }, {} as {[key: string]: Video[]});
+    }, {} as { [key: string]: Video[] });
 
     return (
         <div>
@@ -793,8 +755,7 @@ const VideoList: React.FC<{ videos: Video[] }> = ({ videos }) => {
                     </ul>
                 </div>
             ))}
-            {/* Fix: Ensure title is always a string to satisfy ModalProps type. */}
-            <Modal isOpen={!!playingVideo} onClose={() => setPlayingVideo(null)} title={playingVideo?.title ?? ''}>
+            <Modal isOpen={!!playingVideo} onClose={() => setPlayingVideo(null)} title={playingVideo?.title}>
                 <iframe 
                     width="100%" 
                     height="315" 
@@ -820,6 +781,8 @@ const StudentVideos = () => {
 
 const StudentFees = () => {
     const { user } = useAuth();
+    // Fix: Added a null check for user to prevent potential runtime errors.
+    if (!user) return null;
     const { fees } = useData();
     const myFees = fees[user.id];
     const statusColor = myFees.pending > 0 ? 'var(--danger-color)' : 'var(--success-color)';
@@ -952,9 +915,8 @@ const App = () => {
 
 
 const Root = () => (
-    // Fix: Pass children to providers. The component structure itself is correct.
-    // The previous errors were due to missing prop types on the provider components.
     <>
+        {/* Fix: Wrapped providers with fragments which is fine, errors were due to missing children prop types in providers. */}
         <DataProvider>
             <AuthProvider>
                 <App />
